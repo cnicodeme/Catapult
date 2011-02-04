@@ -1,0 +1,34 @@
+This is the old roadmap, don't use it now, it's deprecated since 2008!
+
+~~ Version .2, codename "Emergence"
+x Db abstract layer based on PDO (and not on a home made mysql wrapper like on the v0.1)
+x Improving the template engine (will now use a third party template engine like http://haanga.org/)
+x Adding :
+    o A user management system
+    o An Authentication system
+    o An Access Control List plugin
+    o A Caching engine (will certainly use Memcached)
+    o A BBCode & Wiki template parser (will use third party classes)
+
+~~ Version .3
+x Adding an ORM like ActiveRecord
+x Implemtenign a Scaffolding system
+x Managing RSS/Atom feeds (DB <-> XML) (will use third party classes)
+x Benchmarking class
+
+~~ Version .4
+x File and Folder class system (Will use the new classes provided by PHP and SPL)
+x Email sending via a dedicated class
+x JSON engine (Will use the new classes provided by PHP and SPL)
+x XML Engine (Will use the new classes provided by PHP and SPL)
+
+~~ Version .5
+x Implementing 
+    o I18n
+    o L10n
+
+~~ Version .6
+x Implementing :
+    o Search Engine class (will use third party classes)
+    o A paypal IPN system (will use third party classes)
+    o A cryptography class (will use third party classes)

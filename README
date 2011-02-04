@@ -1,3 +1,24 @@
-This is the repository for the Catapult PHP Web Framework.
+This version of Catapult, the 0.1 was released in the beginning of 2008.
 
-More infos will come here soon.
+This PHP framework wasn't made for replace the major ones, but a test to see what I was able to create.
+
+Catapult works well (didn't benched it though), but it's not really usefull for creating websites.
+The core is here and fully functionnal, but all the dependencies, like ORM, Form maker, User and Permissions, ACL, haven't been implemented.
+
+A new version is on its way, more oriented RESTful with tons of improvment, mainly on the load and memory usage.
+You'll find more about it in the README file located in the trunk folder.
+
+~~~~~~~
+For your information, here's what this v0.1 can do :
+
+x MVC architecture
+x Database access based on a abstracted layer
+    o Allow the developer to keep is main code while changing the database engine
+x Home made template engine based on PHP
+x Personalized error manager
+x Configuration system generic for *.ini, *.xml or *.php
+x Url manager
+x User data securised
+x Validation system (integers, strings, url, ip, etc)
+x Upload system 
+x Pagination system
