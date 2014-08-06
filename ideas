@@ -139,8 +139,22 @@ Classes :
             default to what requested
             if html, xml, etc = call related template
 
+        Add filters with before/after for controllers
+            Don't mix them with already registered events
+
+            Top : Set filters for any request
+                Impl : class Filter, register Filter like :
+                    Filter::addBefore ($method, array/string $condition)
+                          ::addAfter  ($method, array/string $condition)
+                    $condition is list of methods that will be matched
+
+
     Template
         Helpers, like route (url_for), trans, etc
+
+        url_for($name, $params);
+        url_for($class, $params);
+        @see http://fr2.php.net/is_callable
 
 
     Response
@@ -150,18 +164,6 @@ Classes :
 
         redirect : Redirect
             $to = ur
-
-    Middleware
-        (django)
-        process_request : when request arrive
-        process_view : just before view is executed (but view is known)
-        process_exception : When exception occurs
-        process_template_response : after view has finished, but before template is rendered
-        process_response : after template is rendered, before sending to the client
-
-        Register with priority (like events)
-
-    Plugin (= middleware)
 
     Modules
         small apps

@@ -24,7 +24,7 @@ class Config {
     private static $instance = null;
 
     private static $environments = array();
-    private static $filepath = 'config.php';
+    private static $filepath = null;
 
     public static function setFile($filepath) {
         if (file_exists($filepath) && is_file($filepath) && is_readable($filepath)) {
@@ -87,7 +87,11 @@ class Config {
         }
 
         // Load the config file
-        $this->config = include(self::$filepath);
+        if (is_null(self::$filepath)) {
+            $this->config = include(\Catapult\App::getApplicationPath().DIRECTORY_SEPARATOR.'config.php');
+        } else {
+            $this->config = include(self::$filepath);
+        }
     }
 
     public function getAs($key, $type = self::AS_STRING) {

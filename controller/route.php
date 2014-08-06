@@ -84,7 +84,7 @@ class Route {
     }
 
     public static function getDestination($url, $method = 'GET') {
-        \Catapult\Core\EventDispatcher::trigger('process_request');
+        \Catapult\Core\EventDispatcher::trigger('process_request'); // TODO / PAS BON
 
         if (in_array($url, self::$errorNames)) {
             $url = array_search($url, self::$errorNames);

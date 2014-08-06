@@ -98,6 +98,7 @@ class App {
         }
 
         $base_uri = Core\Config::get('base_uri');
+
         if (!is_null($base_uri)) {
             if (substr($path, 0, strlen($base_uri)) === $base_uri) {
                 $path = '/'.substr($path, strlen($base_uri));
