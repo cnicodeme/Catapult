@@ -1,0 +1,192 @@
+Classes :
+    Config : Charge la configuration du site
+        // https://docs.djangoproject.com/en/dev/ref/settings/
+
+        Template loader
+        Database loader
+        Timezone
+
+
+    Route : Ajoute diverses routes
+        filter
+            before, after
+            classe/method
+            specific url
+
+        has (url/statuscode)
+
+        reverse(url_name, array parameters) : Return the route based on url_name
+
+    Input : Entrées utilisateur
+        get
+            $name
+            $default
+            $verb (GET, POST, FILES, etc), default to null, auto
+            Aliases : getAsX (Int, String, Bool, Array)
+
+    UploadedFile
+        isValid (upload success)
+        move (path)
+        getAbsolutePath
+        getOriginalName
+        getOriginalExtension
+        getSize
+        getMimeType
+
+    Cookie
+        get ($key, $default)
+        pull ($key, $default) : retrieve and remove
+        set
+        has
+        flush (delete the cookie)
+
+    Session
+        get ($key, $default)
+        pull ($key, $default) : retrieve and remove
+        set
+        has
+        regenerate
+        flush (delete the cookie)
+
+        Driver :
+            File
+            Database
+            Cookie
+
+
+    Flash (One time session)
+        get ($key, $default)
+        set
+        has
+        empty
+
+
+    Request
+        path (request uri)
+        is(url-name)
+        header($name) : eg 'content-type'
+        server ($_SERVER)
+        isSecure (https check)
+        isAjax
+
+    Log
+        info/warning/error/critical/
+
+    Hash
+        create($secret)
+        check($hash)
+
+    Cache
+        save ($key, $value, $duration = default)
+        get ($key, $default)
+        pull ($key, $default) : retrieve and remove
+        has ($key)
+        remove($key)
+        increment($key, $amount = 1);
+        decrement($key, $amount = 1)
+
+    Lang (I18n)
+        get($key, $params)
+        has($key)
+
+    Database
+        multiple database, for read/write
+            database
+            username
+            password
+            charset
+            collation
+        driver
+        database
+        username
+        password
+        charset
+        collation
+        prefix (table name)
+
+        execute (execute a write action) ; ($query, $params)
+        prepare ($query)
+        query (execute a select statement) ; ($query/$statement fom prepare, $params)
+
+        Returned result are instance of DatabaseResult, which is seekable (foreach)
+
+        Transaction :
+            // https://github.com/cnicodeme/Catapult/blob/v0.1/Database/aTransaction.php
+        	abstract public function begin ($sTransactionName = null);
+        	abstract public function commit ($sTransactionName = null);
+        	abstract public function rollBack ($sTransactionName = null);
+        	abstract public function count ();
+        	abstract public function savePoint ($sSavePointName);
+        	abstract public function rollBackToSavePoint ($sSavePointName);
+        	abstract public function releaseSavePoint ($sSavePointName);
+
+        connection($name) (accessing the connection in case of multiples)
+        getPdo
+
+    Model
+        Data that will be loaded onto model
+        $primaryKey = 'id';
+        save()
+        delete()
+        toString()
+        query (will call Database::query but map result in Model object)
+
+    Controller
+        Basic controller
+        Returns Response($data, $template, $type=null)
+            $type = json, html, xml, etc
+            if $json, json_encode
+            default to what requested
+            if html, xml, etc = call related template
+
+    Template
+        Helpers, like route (url_for), trans, etc
+
+
+    Response
+        encoding
+        content-type
+        headers array
+
+        redirect : Redirect
+            $to = ur
+
+    Middleware
+        (django)
+        process_request : when request arrive
+        process_view : just before view is executed (but view is known)
+        process_exception : When exception occurs
+        process_template_response : after view has finished, but before template is rendered
+        process_response : after template is rendered, before sending to the client
+
+        Register with priority (like events)
+
+    Plugin (= middleware)
+
+    Modules
+        small apps
+
+        Register module with path :
+            Module::register('base url', 'path to module', 'module name' (default is last part of path));
+                        set template path
+            URLs must take modules into consideration, like module name = 'admin' :
+                Route::get('admin.index');
+
+    LATER
+        Mail
+        Paginator (to see) **
+            toJson
+
+        Queue (abstract layer to ZeroMQ for example) : LATER
+            // http://laravel.com/docs/queues
+
+        Auth : To see, auth layer like Play
+
+        Validation
+
+        FileStorage
+            File
+            Amazon
+            etc
+
+        CSRF
