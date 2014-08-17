@@ -4,7 +4,6 @@ Classes :
 
         Template loader
         Database loader
-        Timezone
 
 
     Route : Ajoute diverses routes
@@ -60,14 +59,6 @@ Classes :
         has
         empty
 
-
-    Request
-        path (request uri)
-        is(url-name)
-        header($name) : eg 'content-type'
-        server ($_SERVER)
-        isSecure (https check)
-        isAjax
 
     Log
         info/warning/error/critical/

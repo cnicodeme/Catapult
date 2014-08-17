@@ -18,6 +18,8 @@ namespace Catapult\Controller;
 class Request {
     private static $path = null;
     private static $method = null;
+    private static $headers = null;
+    private static $destination = null;
 
     public static function setPath($path) {
         self::$path = $path;
@@ -41,6 +43,42 @@ class Request {
     }
 
     public static function setDestination($destination) {
+        self::$destination = $destination;
+    }
 
+    public static function isAjax() {
+        return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+    }
+
+    public static function isSecure() {
+        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
+    }
+
+    public static function isUrl($mixed) {
+        if (is_null(self::$destination)) return false;
+
+        if (is_string($mixed) && self::$destination['name'] === $mixed) {
+            return true;
+        } else {
+            if (is_callable($mixed, true, $absoluteName) && self::$destination['destination'] === $absoluteName) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function getHeader($name) {
+        $name = strtolower($name);
+        if (is_null(self::$headers)) {
+            $tmpHeaders = getallheaders();
+            self::$headers = array();
+            foreach ($tmpHeaders as $key=>$value) {
+                self::$headers[strtolower($key)] = $value;
+            }
+        }
+
+        if (!isset(self::$headers[$name])) return null;
+        return self::$headers[$name];
     }
 }

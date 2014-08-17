@@ -43,6 +43,7 @@ class App {
         // Adding application to include path
         set_include_path(get_include_path().PATH_SEPARATOR.self::$applicationPath);
 
+        self::initBase();
         self::loadMiddlewares();
         self::dispatch();
     }
@@ -81,6 +82,11 @@ class App {
         return ($env === Config::getInstance()->getEnvironment());
     }
 
+    private static function initBase() {
+        $tz = Config::get('timezone', 'UTC');
+        date_default_timezone_set($tz);
+    }
+
     private static function loadMiddlewares() {
         if (Config::has('middlewares')) {
             $middlewares = Config::getArray('middlewares');
@@ -108,6 +114,7 @@ class App {
 
         Request::setPath($path);
         Request::setMethod($_SERVER['REQUEST_METHOD']);
+        EventDispatcher::trigger('process_request');
         $destination = Controller\Route::getDestination(Request::getPath(), Request::getMethod());
 
         if (is_null($destination)) {

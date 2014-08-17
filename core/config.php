@@ -39,24 +39,24 @@ class Config {
         self::$environments[$env] = $rules;
     }
 
-    public static function getBool($key) {
-        return self::getInstance()->getAs($key, self::AS_BOOLEAN);
+    public static function getBool($key, $default = null) {
+        return self::getInstance()->getAs($key, self::AS_BOOLEAN, $default);
     }
 
-    public static function getInt($key) {
-        return self::getInstance()->getAs($key, self::AS_INTEGER);
+    public static function getInt($key, $default = null) {
+        return self::getInstance()->getAs($key, self::AS_INTEGER, $default);
     }
 
-    public static function getString($key) {
-        return self::getInstance()->getAs($key, self::AS_STRING);
+    public static function getString($key, $default = null) {
+        return self::getInstance()->getAs($key, self::AS_STRING, $default);
     }
 
-    public static function get($key) {
-        return self::getInstance()->getAs($key, self::AS_STRING);
+    public static function get($key, $default = null) {
+        return self::getInstance()->getAs($key, self::AS_STRING, $default);
     }
 
-    public static function getArray($key) {
-        return self::getInstance()->getAs($key, self::AS_ARRAY);
+    public static function getArray($key, $default = null) {
+        return self::getInstance()->getAs($key, self::AS_ARRAY, $default);
     }
 
     public static function has($key) {
@@ -94,11 +94,11 @@ class Config {
         }
     }
 
-    public function getAs($key, $type = self::AS_STRING) {
+    public function getAs($key, $type = self::AS_STRING, $default = null) {
         $result = $this->getValue($key);
 
         if (is_null($result)) {
-            return $result;
+            return $default;
         }
 
         switch($type) {
@@ -120,7 +120,7 @@ class Config {
                 break;
         }
 
-        return null;
+        return $default;
     }
 
     public function hasKey($key) {

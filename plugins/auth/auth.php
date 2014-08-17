@@ -16,5 +16,7 @@
 namespace Catapult\Helpers;
 
 class Auth {
-
+    // getUsername
+        // What to find and where ($_SESSION['email'] ? ['user'] ? )
+        // IF returns null, not auth !
 }

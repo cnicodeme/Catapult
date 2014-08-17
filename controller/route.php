@@ -17,6 +17,8 @@ namespace Catapult\Controller;
 
 class Route {
     private static $methods = array('GET' => true, 'POST' => true, 'PUT' => true, 'DELETE' => true);
+
+    private static $defaultMatch = '[a-zA-Z0-9]+';
     private static $errorNames = array (
         400 => 'badRequest',
         403 => 'forbidden',
@@ -25,19 +27,45 @@ class Route {
 
     private static $routes = array();
 
-    public static function add($url, $destination, $method = 'GET', $name = null, $forceHttps = false) {
+    public static function add($url, $destination, $name = null, $extra = 'GET') {
+        $baseExtra = array(
+            'methods' => array('GET'),
+            'forceHttps' => false,
+            'params' => null
+        );
+
+        if (is_array($extra) && (isset($extra['methods']) || isset($extra['params']) || isset($extra['forceHttps']))) {
+            $extra = array_merge($baseExtra, $extra);
+        } else {
+            if (is_string($extra)) {
+                $extra = array_merge($baseExtra, array('methods' => array($extra)));
+            } else {
+                $extra = array_merge($baseExtra, array('methods' => $extra));
+            }
+        }
+
         if (in_array($url, self::$errorNames)) {
             return self::addError(array_search($url, self::$errorNames), $destination, $url);
         }
 
-        self::register($url, $destination, $method, (is_null($name) ? $url : $name), $forceHttps);
-    }
-
-    private static function register($url, $destination, $method, $name, $forceHttps) {
-        if (!is_array($method)) {
-            $method = array($method);
+        if (!is_callable($destination, true, $callableName)) {
+            throw new \Catapult\Exceptions\NotFoundException('Destination cannot be accessed.');
         }
 
+        if (is_null($name)) {
+            $name = str_replace('::', '.', substr($callableName, strrpos($callableName, '\\') + 1));
+        }
+
+        if (isset(self::$routes[$name])) {
+            throw new \Catapult\Exceptions\AlreadyExistsException('Route name "'.$name.'" already exists.');
+        }
+
+        $destination = $callableName;
+
+        self::register($url, $destination, $name, $extra['methods'], $extra['params'], $extra['forceHttps']);
+    }
+
+    private static function register($url, $destination, $name, $method, $params, $forceHttps) {
         $methods = array();
         foreach ($method as $m) {
             if (!self::isMethodAllowed($m)) {
@@ -46,26 +74,22 @@ class Route {
             $methods[$m] = true;
         }
 
-        /*
-         * Accepted converter :
-         *    * int
-         *    * float
-         *    * str - default
-         *    * path
+        $urlPattern = '{^'.$url.'$}uS';
+        if (preg_match_all('{(\:[a-z]+)}', $url, $patterns, PREG_PATTERN_ORDER) > 0) {
+            foreach ($patterns[1] as $pattern) {
+                $urlPattern = str_replace($pattern, '('.(isset($params[substr($pattern, 1)]) ? $params[substr($pattern, 1)] : self::$defaultMatch).')', $urlPattern);
+            }
 
-        if (strpos($url, '<') !== false) {
-            // Fail if not correct, ex: /<int:id> => works with /15s ! should not!
-            //
-            $url = '@^'.$url.'$@';
-            $url = preg_replace('$<([a-z]+)>$', "(?P<$1>[a-z0-9\-\_]+)", $url);
-            $url = preg_replace('$<str:([a-z]+)>$', "(?P<$1>[a-z0-9\-\_]+)", $url);
-            $url = preg_replace('$<int:([a-z]+)>$', "(?P<$1>\d+)", $url);
-            $url = preg_replace('$<float:([a-z]+)>$', "(?P<$1>-?(?:\d+|\d*\.\d+))", $url);
-            $url = preg_replace('$<path:([a-z]+)>$', "(?P<$1>(\/([a-z0-9+\$_-]\.?)+)*\)", $url);
-        }*/
+            preg_replace('{(\:[a-z]+)}', '('.self::$defaultMatch.')', $urlPattern);
+        }
+
+        if ($urlPattern === '{^'.$url.'$}uS') {
+            $urlPattern = null;
+        }
 
         self::$routes[$name] = array(
             'url'         => $url,
+            'urlPattern'  => $urlPattern,
             'destination' => $destination,
             'method'      => $methods,
             'name'        => $name,
@@ -84,48 +108,45 @@ class Route {
     }
 
     public static function getDestination($url, $method = 'GET') {
-        \Catapult\Core\EventDispatcher::trigger('process_request'); // TODO / PAS BON
-
         if (in_array($url, self::$errorNames)) {
             $url = array_search($url, self::$errorNames);
         }
 
         $route = null;
-        if (is_int($url) && isset(self::$routes[$url])) {
-            $route = self::$routes[$url];
-        } else if (isset(self::$routes[$url]) && isset(self::$routes[$url]['method'][$method])) {
-            $route = self::$routes[$url];
-        } else {
-            foreach (self::$routes as $route) {
-                if (is_null($route['method'])) continue;
-                if (!isset($route['method'][$method])) continue;
-                if ('^' !== substr($route['url'], 0, 1)) continue;
+        foreach (self::$routes as $route) {
+            if (!isset($route['method'][$method])) continue;
 
-                $results = array();
-                if (preg_match_all('{'.$route['url'].'}uS', $url, $results, PREG_PATTERN_ORDER) > 0) {
-                    $params = array();
-                    foreach ($results as $key=>$result) {
-                        if (!(is_int($key) && $key !== 0)) continue;
-                        if (is_numeric($result[0])) {
-                            if (strpos($result[0], '.') !== false) {
-                                $params[$key] = floatval($result[0]);
-                            } else {
-                                $params[$key] = intval($result[0]);
-                            }
-                        } else {
-                            $params[$key] = $result[0];
-                        }
+            if (is_null($route['urlPattern'])) {
+                if ($route['url'] === $url) {
+                    if (!isset($route['params'])) {
+                        $route['params'] = array();
                     }
 
-                    $route['params'] = $params;
                     return $route;
                 }
-            }
-        }
 
-        if (!is_null($route)) {
-            $route['params'] = array();
-            return $route;
+                continue;
+            }
+
+            $results = array();
+            if (preg_match_all($route['urlPattern'], $url, $results, PREG_PATTERN_ORDER) > 0) {
+                $params = array();
+                foreach ($results as $key=>$result) {
+                    if (!(is_int($key) && $key !== 0)) continue;
+                    if (is_numeric($result[0])) {
+                        if (strpos($result[0], '.') !== false) {
+                            $params[$key] = floatval($result[0]);
+                        } else {
+                            $params[$key] = intval($result[0]);
+                        }
+                    } else {
+                        $params[$key] = $result[0];
+                    }
+                }
+
+                $route['params'] = $params;
+                return $route;
+            }
         }
 
         return null;
@@ -133,6 +154,33 @@ class Route {
 
     public static function isMethodAllowed($method) {
         return isset(self::$methods[$method]);
+    }
+
+    public static function reverse($name, $params = array(), $absolute=false) {
+        $url = self::$routes[$name]['url'];
+        if (preg_match_all('{(\:[a-z]+)}', $url, $patterns, PREG_PATTERN_ORDER) > 0) {
+            foreach ($patterns[1] as $pattern) {
+                if (!isset($params[substr($pattern, 1)])) {
+                    throw new \Catapult\Exceptions\InvalidParameterException('Parameter '.substr($pattern, 1).' was not found for route name "'.$name.'".');
+                }
+                $url = str_replace($pattern, $params[substr($pattern, 1)], $url);
+            }
+        }
+
+        if (strpos($url, ':') !== false) {
+            if (preg_match_all('{(\:[a-z]+)}', $url, $patterns, PREG_PATTERN_ORDER) > 0) {
+                throw new \Catapult\Exceptions\InvalidParameterException('Route "'.$name.'" is missing some parameters.');
+            }
+        }
+
+        if ($absolute) {
+            $scheme = (self::$routes[$name]['forceHttps'] ? 'https' : (Request::isSecure() ? 'https' : 'http')).'://';
+            $url = str_replace('//', '/', $_SERVER['SERVER_NAME'].'/'.\Catapult\Core\Config::get('base_uri').$url);
+
+            return $scheme.$url;
+        } else {
+            return $url;
+        }
     }
 }
 
