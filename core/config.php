@@ -88,9 +88,18 @@ class Config {
 
         // Load the config file
         if (is_null(self::$filepath)) {
-            $this->config = include(\Catapult\App::getApplicationPath().DIRECTORY_SEPARATOR.'config.php');
+            $config = include(\Catapult\App::getApplicationPath().DIRECTORY_SEPARATOR.'config.php');
         } else {
-            $this->config = include(self::$filepath);
+            $config = include(self::$filepath);
+        }
+
+        // TODO : Merge global with getEnvironment in config for better and faster lookup
+        //        http://php.net/manual/fr/function.array-merge-recursive.php
+
+        if (isset($config[$this->environment])) {
+            $this->config = array_replace_recursive($config['global'], $config[$this->environment]);
+        } else {
+            $this->config = $config['global'];
         }
     }
 
@@ -133,17 +142,8 @@ class Config {
 
     private function getValue($key) {
         $key = explode('.', $key);
+        return $this->lookup($this->config, $key);
         $result = null;
-
-        if (isset($this->config[$this->environment])) {
-            $result = $this->lookup($this->config[$this->environment], $key);
-            if (!is_null($result)) {
-                return $result;
-            }
-        }
-
-        $result = $this->lookup($this->config['global'], $key);
-        return $result;
     }
 
     private function lookup($level, $parts) {
