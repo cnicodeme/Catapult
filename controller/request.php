@@ -19,7 +19,7 @@ class Request {
     private static $path = null;
     private static $method = null;
     private static $headers = null;
-    private static $destination = null;
+    private static $route = null;
 
     public static function setPath($path) {
         self::$path = $path;
@@ -42,8 +42,8 @@ class Request {
         return self::$method === $method;
     }
 
-    public static function setDestination($destination) {
-        self::$destination = $destination;
+    public static function setRoute(\Catapult\Controller\Route $route) {
+        self::$route = $route;
     }
 
     public static function isAjax() {
@@ -54,18 +54,26 @@ class Request {
         return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
     }
 
-    public static function isUrl($mixed) {
-        if (is_null(self::$destination)) return false;
+    /**
+     * Test if the current url is the given name
+     * For example, test if "/" (current url) is "home"
+     */
+    public static function isUrl($name) {
+        if (is_null(self::$route)) return false;
 
-        if (is_string($mixed) && self::$destination['name'] === $mixed) {
+        if (self::$route->getName() === $name) {
             return true;
-        } else {
-            if (is_callable($mixed, true, $absoluteName) && self::$destination['destination'] === $absoluteName) {
-                return true;
-            }
+        } else if (self::$route->getUrl() === $name) {
+            return true;
         }
 
         return false;
+    }
+
+    public static function getRouteName() {
+        if (is_null(self::$route)) return null;
+
+        return self::$route->getName();
     }
 
     public static function getHeader($name) {

@@ -5,17 +5,6 @@ Classes :
         Template loader
         Database loader
 
-
-    Route : Ajoute diverses routes
-        filter
-            before, after
-            classe/method
-            specific url
-
-        has (url/statuscode)
-
-        reverse(url_name, array parameters) : Return the route based on url_name
-
     Input : Entrées utilisateur
         get
             $name
@@ -129,15 +118,6 @@ Classes :
             if $json, json_encode
             default to what requested
             if html, xml, etc = call related template
-
-        Add filters with before/after for controllers
-            Don't mix them with already registered events
-
-            Top : Set filters for any request
-                Impl : class Filter, register Filter like :
-                    Filter::addBefore ($method, array/string $condition)
-                          ::addAfter  ($method, array/string $condition)
-                    $condition is list of methods that will be matched
 
 
     Template

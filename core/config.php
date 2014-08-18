@@ -1,6 +1,6 @@
 <?php
 /**
- * @name
+ * @name Config
  * Load and give access to config file
  *
  * @package Catapult.Core

@@ -49,6 +49,11 @@ class App {
     }
 
     public static function abort($code) {
+        if (!is_int($code)) {
+            throw new \Catapult\Exceptions\InvalidParameterException('Parameter "code" must be an integer.');
+        }
+        list($route, $params) = \Catapult\Controller\Router::getRoute($code);
+
         $title = null;
         switch ($code) {
             case '400':
@@ -62,8 +67,7 @@ class App {
                 break;
         }
 
-        $destination = Controller\Route::getDestination($code);
-        if (is_null($destination)) {
+        if (is_null($route)) {
             EventDispatcher::trigger('process_view');
 
             Response::addHeader('HTTP/1.0 '.$code.' '.$title);
@@ -72,7 +76,8 @@ class App {
             // Render template
             Response::render();
         } else {
-            self::call($destination);
+            Response::addHeader('HTTP/1.0 '.$code.' '.$title);
+            self::call($route);
         }
 
         exit();
@@ -115,21 +120,26 @@ class App {
         Request::setPath($path);
         Request::setMethod($_SERVER['REQUEST_METHOD']);
         EventDispatcher::trigger('process_request');
-        $destination = Controller\Route::getDestination(Request::getPath(), Request::getMethod());
+        list($route, $params) = \Catapult\Controller\Router::getRoute(Request::getPath(), Request::getMethod());
 
-        if (is_null($destination)) {
+        if (is_null($route)) {
             self::abort(404);
+            exit();
         }
 
-        self::call($destination);
+        self::call($route, $params);
         exit();
     }
 
-    private static function call($destination) {
-        Request::setDestination($destination);
+    private static function call(\Catapult\Controller\Route $route, $params = array()) {
+        Request::setRoute($route);
         EventDispatcher::trigger('process_view');
 
-        call_user_func_array($destination['destination'], $destination['params']);
+        if (is_null($params)) {
+            $params = array();
+        }
+
+        call_user_func_array($route->getDestination(), $params);
 
         // Render template
         Response::render();
