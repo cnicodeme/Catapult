@@ -70,8 +70,8 @@ class App {
         if (is_null($route)) {
             EventDispatcher::trigger('process_view');
 
+            // Set default view with default to HTML
             Response::addHeader('HTTP/1.0 '.$code.' '.$title);
-            Response::setBody($title);
 
             // Render template
             Response::render();
@@ -135,13 +135,15 @@ class App {
         Request::setRoute($route);
         EventDispatcher::trigger('process_view');
 
-        if (is_null($params)) {
+        if (is_null($params) || !is_array($params)) {
             $params = array();
         }
 
-        call_user_func_array($route->getDestination(), $params);
+        $response = call_user_func_array($route->getDestination(), $params);
+        if (!is_null($response) && $response instanceof \Catapult\Controller\Responses\IResponse) {
+            $response->render();
+        } else {
 
-        // Render template
-        Response::render();
+        }
     }
 }

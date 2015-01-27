@@ -17,20 +17,28 @@ namespace Catapult\Controller;
 
 use \Catapult\Core\EventDispatcher;
 
-class Response {
-    public static function addHeader() {
+abstract class Response implements \Catapult\Controller\Responses\IResponse {
+    private $headers = array();
 
+    public function addHeader($header) {
+        $this->headers[] = $header;
     }
 
-    public static function setBody() {
-
+    public function getHeaders() {
+        return $this->headers;
     }
 
-    public static function render() {
-        EventDispatcher::trigger('process_template_response');
+    public function render() {
+        EventDispatcher::trigger('process_response', array($this));
 
-        // Render here
+        foreach ($this->getHeaders() as $header) {
+            header($header, true);
+        }
 
-        EventDispatcher::trigger('process_response');
+        echo $this->output();
+
+        EventDispatcher::trigger('process_tear_down', array($this));
     }
+
+    abstract protected function output();
 }
