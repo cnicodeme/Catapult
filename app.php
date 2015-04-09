@@ -98,8 +98,7 @@ class App {
             if (self::isEnvironment('prod')) {
                 Response::abort(500, null, $e)->render();
             }
-            Response::abort(500, null, $e)->render();
-            die();
+            
             header('content-type: text/plain; charset=utf8');
             throw $e;
         }

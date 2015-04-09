@@ -17,7 +17,7 @@ namespace Catapult\Core;
 
 class AutoLoader {
     public static function init() {
-        spl_autoload_register(array(self, 'loader'));
+        spl_autoload_register(array('self', 'loader'));
     }
 
     private static function loader($classname) {

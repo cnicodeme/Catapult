@@ -16,8 +16,9 @@
 namespace Catapult\Database;
 
 abstract class Model {
-    protected static $_primaryKey = 'id';
-    protected static $_table = null;
+    protected $primaryKey = 'id';
+    protected $table = null;
+    protected $structure = null;
 
     // Add structure to convert dates, numerics to proper value
 
@@ -40,31 +41,43 @@ abstract class Model {
     }
 
     public function save($database = 'default') {
-        if (empty(self::$_primaryKey)) {
+        if (empty($this->primaryKey)) {
             throw new \Catapult\Exceptions\NotSupportedException('Missing table ID.');
         }
 
-        if (empty(self::$_table)) {
+        if (empty($this->table)) {
             throw new \Catapult\Exceptions\NotSupportedException('Missing table name.');
         }
 
-    /*    if ($this->__isset(self::$_primaryKey)) { // Update
-            $sql = 'UPDATE `'.self::$_table.'` SET '..' WHERE `'.self::$_primaryKey.'` = :id LIMIT 1;';
+    /*    if ($this->__isset($this->primaryKey)) { // Update
+            $sql = 'UPDATE `'.$this->table.'` SET '..' WHERE `'.$this->primaryKey.'` = :id LIMIT 1;';
         } else { // Insert
-            $sql = 'INSERT INTO `'.self::$_table.'` (`'.implode($this->_columns, '`, `').'`) VALUES (:'.implode($this->_columns, ', :').');';
+            $sql = 'INSERT INTO `'.$this->table.'` (`'.implode($this->_columns, '`, `').'`) VALUES (:'.implode($this->_columns, ', :').');';
         }*/
     }
 
+    public function getStructure() {
+        return array_keys($this->structure);
+    }
+
     public function delete($database = 'default') {
-        if (empty(self::$_primaryKey)) {
+        if (empty($this->primaryKey)) {
             throw new \Catapult\Exceptions\NotSupportedException('Missing table ID.');
         }
 
-        if (empty(self::$_table)) {
+        if (empty($this->table)) {
             throw new \Catapult\Exceptions\NotSupportedException('Missing table name.');
         }
 
-        return Database::execute('DELETE FROM `'.self::$_table.'` WHERE `'.self::$_primaryKey.'` = :id LIMIT 1;', array('id' => $this->_columns[self::$_primaryKey]));
+        return Database::execute('DELETE FROM `'.$this->table.'` WHERE `'.$this->primaryKey.'` = :id LIMIT 1;', array('id' => $this->_columns[$this->_primaryKey]));
+    }
+
+    public function __toString() {
+        if (isset($this->_columns[$this->primaryKey])) {
+            return 'Model ID#'.self::$_columns[$this->primaryKey];
+        }
+
+        return 'Model';
     }
 
     protected static function load($sql, $params = null) {
@@ -74,13 +87,5 @@ abstract class Model {
     protected static function loadFirst($sql, $params) {
         $model = self::load($sql, $params)->fetch();
         return ($model === false ? null : $model);
-    }
-
-    public function __toString() {
-        if (isset($this->_columns[self::$_primaryKey])) {
-            return 'Model ID#'.self::$_columns[$this->_primaryKey];
-        }
-
-        return 'Model';
     }
 }

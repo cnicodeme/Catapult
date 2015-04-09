@@ -25,8 +25,11 @@ class EventDispatcher {
 
         foreach (self::$events[$name] as $event) {
             // We stop if one of the methods returns false
-            if (call_user_func_array($event['method'], array_merge((array) $event['params'], (array) $params)) === false) {
-                break;
+            $result = call_user_func_array($event['method'], array_merge((array) $event['params'], (array) $params));
+            if ($result === false) break;
+            if ($result instanceof \Catapult\Controller\Response) {
+                $result->render();
+                die();
             }
         }
     }
@@ -79,7 +82,7 @@ class EventDispatcher {
     }
 
     private static function getNameWithNamespace($name) {
-        list($name, $namespace) = explode('.', $name);
+        @list($name, $namespace) = explode('.', $name);
         return array (
             'name' => $name,
             'namespace' => $namespace

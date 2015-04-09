@@ -16,10 +16,11 @@
 namespace Catapult\Controller;
 
 class Request {
-    private $path = null;
-    private $method = null;
+    private $path    = null;
+    private $method  = null;
     private $headers = null;
-    private $route = null;
+    private $route   = null;
+    private $data    = null;
 
     public function __construct() {
         if (strpos($_SERVER['REQUEST_URI'], '?') !== false) {
@@ -66,22 +67,6 @@ class Request {
         return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
     }
 
-    /**
-     * Test if the current url is the given name
-     * For example, test if "/" (current url) is "home"
-     */
-    public function isUrl($name) {
-        if (is_null($this->route)) return false;
-
-        if ($this->route->getName() === $name) {
-            return true;
-        } else if ($this->route->getUrl() === $name) {
-            return true;
-        }
-
-        return false;
-    }
-
     public function getHeader($name) {
         $name = strtolower($name);
         if (is_null($this->headers)) {
@@ -94,5 +79,43 @@ class Request {
 
         if (!isset($this->headers[$name])) return null;
         return $this->headers[$name];
+    }
+
+    // TODO: Test JSON body, File upload as BODY
+    public function getData($name = null) {
+        if (is_null($this->data)) {
+            $this->data = array();
+            switch(getMethod()) {
+                case 'GET':
+                    $this->data = $_GET;
+                    break;
+                case 'POST':
+                    $this->data = $_GET;
+                    break;
+                case 'PUT':
+                case 'DELETE':
+                    parse_str (file_get_contents ("php://input"), $this->data);
+                    break;
+            }
+
+            if(count($_FILES) > 0) {
+                var_dump('TODO: MANAGE FILES');
+                foreach($_FILES as $key=>$file) {
+                    // TODO !
+                    var_dump(
+                        $key,
+                        $file
+                    );
+                }
+            }
+        }
+
+        if (!is_array($this->data)) return null;
+
+        if (is_null($name)) {
+            return $this->data;
+        } else {
+            return $this->data[$name];
+        }
     }
 }
