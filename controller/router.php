@@ -42,8 +42,8 @@ class Router {
     }
 
     public static function rest($url, $baseDestination) {
-        if (!is_a($baseDestination, '\Catapult\Controller\Controllers\RestController', true)) {
-            throw new \Catapult\Exceptions\CatapultException($destination.' does not extends RestController.');
+        if (!is_a($baseDestination, '\Catapult\Controller\Controllers\Controller', true)) {
+            throw new \Catapult\Exceptions\CatapultException($destination.' does not extends Controller.');
         }
 
         Route::setDefaultMatch(Route::NUMERIC_PATTERN);

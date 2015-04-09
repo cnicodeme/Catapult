@@ -28,6 +28,7 @@ require_once(__DIR__.'/core/autoloader.php');
 use \Catapult\Core\Config;
 use \Catapult\Core\EventDispatcher;
 use \Catapult\Controller\Controller;
+use \Catapult\Controller\Response;
 
 class App {
     private static $applicationPath = null;
@@ -68,12 +69,11 @@ class App {
     private static function dispatch() {
         EventDispatcher::trigger('process_request');
 
-        $request = Controller::getRequest();
+        $request = Controller::request();
         list($route, $params) = \Catapult\Controller\Router::getRoute($request->getPath(), $request->getMethod());
 
         if (is_null($route)) {
-            Controller::getResponse()->abort(404);
-            die();
+            Response::abort(404)->render();
         }
 
         self::call($route, $params);
@@ -81,21 +81,25 @@ class App {
     }
 
     private static function call(\Catapult\Controller\Route $route, $params = array()) {
-        Controller::getRequest()->setRoute($route);
+        Controller::request()->setRoute($route);
+        EventDispatcher::on('process_view', substr($route->getDestination(), 0, strrpos($route->getDestination(), '::')).'::before');
+        EventDispatcher::on('process_response', substr($route->getDestination(), 0, strrpos($route->getDestination(), '::')).'::after');
 
         if (is_null($params) || !is_array($params)) {
             $params = array();
         }
 
         try {
-            EventDispatcher::trigger('process_view', array($route->getDestination, $params));
-            $result = call_user_func_array($route->getDestination(), $params);
-            Controller::getResponse()->render($result);
+            EventDispatcher::trigger('process_view', array($route, $params));
+            $response = call_user_func_array($route->getDestination(), $params);
+            $response->render();
         } catch (\Exception $e) {
             EventDispatcher::trigger('process_exception', array($e));
             if (self::isEnvironment('prod')) {
-                Controller::getResponse()->abort(500, 'Internal Server Error');
+                Response::abort(500, null, $e)->render();
             }
+            Response::abort(500, null, $e)->render();
+            die();
             header('content-type: text/plain; charset=utf8');
             throw $e;
         }

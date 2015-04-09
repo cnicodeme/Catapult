@@ -21,11 +21,25 @@ class Response {
     private $headers = array();
     private $engine = null;
 
-    public function __construct() {
+    private $code = 200;
+    private $title = null;
+    private $content = null;
+
+    public function __construct($code, $title = null, $content = null) {
+        if (!is_int($code)) {
+            throw new \Catapult\Exceptions\InvalidParameterException('Parameter "code" must be an integer.');
+        }
+
         $this->engine = function($data) {
-            func_get_args();
-            echo $data;
+            if (!is_null($data)) {
+                echo $data;
+            }
         };
+
+        $this->code = $code;
+        $this->title = $title;
+        $this->content = $content;
+        $this->addHeader('HTTP/1.0 '.$code.(is_null($title) ? '' : ' '.$title));
     }
 
     public function addHeader($header) {
@@ -36,16 +50,32 @@ class Response {
         return $this->headers;
     }
 
-    public function render($data = null) {
-        EventDispatcher::trigger('process_response', array($this));
+    public function clearHeaders() {
+        $this->headers = array();
+    }
 
-        foreach ($this->getHeaders() as $header) {
-            header($header, true);
-        }
+    public function getCode() {
+        return $this->code;
+    }
 
-        call_user_func_array($this->engine, array($data));
+    public function setCode($code) {
+        $this->code = $code;
+    }
 
-        EventDispatcher::trigger('process_tear_down', array($this));
+    public function getTitle() {
+        return $this->title;
+    }
+
+    public function setTitle($title) {
+        $this->title = $title;
+    }
+
+    public function getContent() {
+        return $this->content;
+    }
+
+    public function setContent($content) {
+        $this->content = $content;
     }
 
     public function setEngine($engine) {
@@ -56,39 +86,39 @@ class Response {
         $this->engine = $engine;
     }
 
-    public function noContent() {
-        return $this->abort(204);
-    }
+    public function render() {
+        EventDispatcher::trigger('process_response', array($this));
 
-    public function redirect($url) {
-        $this->clearHeaders();
-        $this->addHeader('HTTP/1.0 303 Redirect');
-        $this->addHeader('Location: '.$url);
-        $this->render();
+        foreach ($this->getHeaders() as $header) {
+            header($header, true);
+        }
+
+        call_user_func_array($this->engine, array($this->getContent()));
+
+        EventDispatcher::trigger('process_tear_down', array($this));
+
         die();
     }
 
-    public function badRequest($title = null) {
-        return $this->abort(400, $title);
+    public static function redirect($url) {
+        if (substr($url, 0, 1) === '/') {
+            $baseUri = \Catapult\Core\Config::get('base_uri');
+            if (!empty($baseUri)) {
+                if (substr($baseUri, -1) === '/') {
+                    $url = substr($baseUri, 0, -1).$url;
+                } else {
+                    $url = $baseUri.$url;
+                }
+            }
+        }
+
+        $response = new Response(303, 'Redirect');
+        $response->addHeader('Location: '.$url);
+        $response->render();
+        die();
     }
 
-    public function unauthorized($title = null) {
-        return $this->abort(401, $title);
-    }
-
-    public function forbidden($title = null) {
-        return $this->abort(403, $title);
-    }
-
-    public function notFound($title = null) {
-        return $this->abort(404, $title);
-    }
-
-    public function internalServerError($title = null) {
-        return $this->abort(500, $title);
-    }
-
-    public function abort($code, $title = null, $params = null) {
+    public static function abort($code, $title = null, $params = null) {
         if (!is_int($code)) {
             throw new \Catapult\Exceptions\InvalidParameterException('Parameter "code" must be an integer.');
         }
@@ -96,12 +126,8 @@ class Response {
         $route = \Catapult\Controller\Router::getError($code);
 
         if (is_null($route)) {
-            $this->addHeader('HTTP/1.0 '.$code.(is_null($title) ? '' : ' '.$title));
-            if(!is_null($title)) {
-                $this->render($title);
-            } else {
-                $this->render();
-            }
+            $response = new Response($code, $title);
+            $response->render();
         } else {
             if (!is_null($params)) {
                 if (!is_array($params)) {
@@ -114,10 +140,8 @@ class Response {
             }
 
             \Catapult\Core\EventDispatcher::trigger('process_view', array($route, $params));
-
-            $this->addHeader('HTTP/1.0 '.$code.(is_null($title) ? '' : ' '.$title));
-            $result = call_user_func_array($route, $params);
-            $this->render($result);
+            $response = call_user_func_array($route, $params);
+            $response->render();
         }
 
         die();
