@@ -34,4 +34,8 @@ abstract class Controller {
 
         return self::$response;
     }
+
+    public static function session() {
+
+    }
 }

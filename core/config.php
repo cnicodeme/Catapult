@@ -93,13 +93,15 @@ class Config {
             $config = include(self::$filepath);
         }
 
-        // TODO : Merge global with getEnvironment in config for better and faster lookup
-        //        http://php.net/manual/fr/function.array-merge-recursive.php
-
         if (isset($config[$this->environment])) {
             $this->config = array_replace_recursive($config['global'], $config[$this->environment]);
         } else {
             $this->config = $config['global'];
+        }
+
+        if (isset($this->config['databases']) && count($this->config['databases']) === 1 && !isset($this->config['databases']['default']) && isset($this->config['databases'][0])) {
+            $this->config['databases']['default'] = $this->config['databases'][0];
+            unset($this->config['databases'][0]);
         }
     }
 

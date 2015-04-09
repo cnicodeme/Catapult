@@ -27,7 +27,6 @@ require_once(__DIR__.'/core/autoloader.php');
 
 use \Catapult\Core\Config;
 use \Catapult\Core\EventDispatcher;
-use \Catapult\Controller\Request;
 use \Catapult\Controller\Controller;
 
 class App {
@@ -69,7 +68,7 @@ class App {
     private static function dispatch() {
         EventDispatcher::trigger('process_request');
 
-        $request = \Catapult\Controller\Controller::getRequest();
+        $request = Controller::getRequest();
         list($route, $params) = \Catapult\Controller\Router::getRoute($request->getPath(), $request->getMethod());
 
         if (is_null($route)) {
@@ -82,7 +81,7 @@ class App {
     }
 
     private static function call(\Catapult\Controller\Route $route, $params = array()) {
-        \Catapult\Controller\Controller::getRequest()->setRoute($route);
+        Controller::getRequest()->setRoute($route);
 
         if (is_null($params) || !is_array($params)) {
             $params = array();
@@ -92,9 +91,13 @@ class App {
             EventDispatcher::trigger('process_view', array($route->getDestination, $params));
             $result = call_user_func_array($route->getDestination(), $params);
             Controller::getResponse()->render($result);
-        } catch (\Catapult\Exceptions\CatapultException $e) {
+        } catch (\Exception $e) {
             EventDispatcher::trigger('process_exception', array($e));
-            Controller::getResponse()->abort(500, $e);
+            if (self::isEnvironment('prod')) {
+                Controller::getResponse()->abort(500, 'Internal Server Error');
+            }
+            header('content-type: text/plain; charset=utf8');
+            throw $e;
         }
     }
 }

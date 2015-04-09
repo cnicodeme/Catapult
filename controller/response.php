@@ -103,10 +103,20 @@ class Response {
                 $this->render();
             }
         } else {
-            \Catapult\Core\EventDispatcher::trigger('process_view', array($route, array($params)));
+            if (!is_null($params)) {
+                if (!is_array($params)) {
+                    $params = array($params);
+                }
+
+                $params = array_merge(array($title), $params);
+            } else {
+                $params = array($title);
+            }
+
+            \Catapult\Core\EventDispatcher::trigger('process_view', array($route, $params));
 
             $this->addHeader('HTTP/1.0 '.$code.(is_null($title) ? '' : ' '.$title));
-            $result = call_user_func_array($route, array($params));
+            $result = call_user_func_array($route, $params);
             $this->render($result);
         }
 
