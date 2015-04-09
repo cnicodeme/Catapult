@@ -28,7 +28,7 @@ require_once(__DIR__.'/core/autoloader.php');
 use \Catapult\Core\Config;
 use \Catapult\Core\EventDispatcher;
 use \Catapult\Controller\Request;
-use \Catapult\Controller\Response;
+use \Catapult\Controller\Controller;
 
 class App {
     private static $applicationPath = null;
@@ -46,41 +46,6 @@ class App {
         self::initBase();
         self::loadMiddlewares();
         self::dispatch();
-    }
-
-    public static function abort($code) {
-        if (!is_int($code)) {
-            throw new \Catapult\Exceptions\InvalidParameterException('Parameter "code" must be an integer.');
-        }
-        list($route, $params) = \Catapult\Controller\Router::getRoute($code);
-
-        $title = null;
-        switch ($code) {
-            case '400':
-                $title = 'Bad Request';
-                break;
-            case '403':
-                $title = 'Forbidden';
-                break;
-            case '404':
-                $title = 'Not Found';
-                break;
-        }
-
-        if (is_null($route)) {
-            EventDispatcher::trigger('process_view');
-
-            // Set default view with default to HTML
-            Response::addHeader('HTTP/1.0 '.$code.' '.$title);
-
-            // Render template
-            Response::render();
-        } else {
-            Response::addHeader('HTTP/1.0 '.$code.' '.$title);
-            self::call($route);
-        }
-
-        exit();
     }
 
     public static function isEnvironment($env) {
@@ -102,48 +67,34 @@ class App {
     }
 
     private static function dispatch() {
-        if (strpos($_SERVER['REQUEST_URI'], '?') !== false) {
-            $path = substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '?'));
-        } else {
-            $path = $_SERVER['REQUEST_URI'];
-        }
-
-        $base_uri = Core\Config::get('base_uri');
-
-        if (!is_null($base_uri)) {
-            if (substr($path, 0, strlen($base_uri)) === $base_uri) {
-                $path = '/'.substr($path, strlen($base_uri));
-                $path = str_replace('//', '/', $path);
-            }
-        }
-
-        Request::setPath($path);
-        Request::setMethod($_SERVER['REQUEST_METHOD']);
         EventDispatcher::trigger('process_request');
-        list($route, $params) = \Catapult\Controller\Router::getRoute(Request::getPath(), Request::getMethod());
+
+        $request = \Catapult\Controller\Controller::getRequest();
+        list($route, $params) = \Catapult\Controller\Router::getRoute($request->getPath(), $request->getMethod());
 
         if (is_null($route)) {
-            self::abort(404);
-            exit();
+            Controller::getResponse()->abort(404);
+            die();
         }
 
         self::call($route, $params);
-        exit();
+        die();
     }
 
     private static function call(\Catapult\Controller\Route $route, $params = array()) {
-        Request::setRoute($route);
-        EventDispatcher::trigger('process_view');
+        \Catapult\Controller\Controller::getRequest()->setRoute($route);
 
         if (is_null($params) || !is_array($params)) {
             $params = array();
         }
 
-        $response = call_user_func_array($route->getDestination(), $params);
-        if (!is_null($response) && $response instanceof \Catapult\Controller\Responses\IResponse) {
-            $response->render();
-        } else {
-
+        try {
+            EventDispatcher::trigger('process_view', array($route->getDestination, $params));
+            $result = call_user_func_array($route->getDestination(), $params);
+            Controller::getResponse()->render($result);
+        } catch (\Catapult\Exceptions\CatapultException $e) {
+            EventDispatcher::trigger('process_exception', array($e));
+            Controller::getResponse()->abort(500, $e);
         }
     }
 }

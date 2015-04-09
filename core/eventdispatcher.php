@@ -24,7 +24,10 @@ class EventDispatcher {
         }
 
         foreach (self::$events[$name] as $event) {
-            call_user_func_array($event['method'], array_merge((array) $event['params'], (array) $params));
+            // We stop if one of the methods returns false
+            if (call_user_func_array($event['method'], array_merge((array) $event['params'], (array) $params)) === false) {
+                break;
+            }
         }
     }
 
@@ -43,7 +46,7 @@ class EventDispatcher {
 
     public static function off($name, $method = null) {
         // off by name, namespace or method
-        
+
         $name = self::getNameWithNamespace($name);
         if (isset($name['name'])) {
             foreach (self::$events[$name['name']] as $eventIndex=>$event) {

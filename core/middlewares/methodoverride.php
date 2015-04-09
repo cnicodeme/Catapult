@@ -15,7 +15,7 @@
 
 namespace Catapult\Core\Middlewares;
 
-class MethodOverride {
+class MethodOverride extends \Catapult\Core\Middleware {
     public function __construct() {
         \Catapult\Core\EventDispatcher::on('process_request', array($this, 'onProcessRequest'));
     }

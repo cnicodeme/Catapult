@@ -19,15 +19,15 @@ class Filter {
     private static $beforeCalls = null;
     private static $afterCalls = null;
 
-    public static function addBefore($name, $destination) {
-        self::register('before', $name, $destination);
+    public static function addBefore($destination) {
+        self::register('before', $destination);
     }
 
-    public static function addAfter($name, $destination) {
-        self::register('after', $name, $destination);
+    public static function addAfter($destination) {
+        self::register('after', $destination);
     }
 
-    private static function register($action, $name, $destination) {
+    private static function register($action, $destination) {
         if (!is_callable($destination, true)) {
             throw new \Catapult\Exceptions\NotFoundException('Destination cannot be accessed.');
         }
@@ -39,27 +39,20 @@ class Filter {
             self::${$varName} = array();
         }
 
-        if (!isset(self::${$varName}[$name])) {
-            self::${$varName}[$name] = array();
-        }
-
-        self::${$varName}[$name][] = $destination;
+        self::${$varName}[] = $destination;
     }
 
     public static function triggerBefore() {
-        self::trigger('before', \Catapult\Controller\Request::getRouteName());
+        self::trigger('before');
     }
-
     public function triggerAfter() {
-        self::trigger('after', \Catapult\Controller\Request::getRouteName());
+        self::trigger('after');
     }
 
-    private static function trigger($action, $name) {
-        if (is_null($name)) return;
-        
+    private static function trigger($action) {
         $varName = $action.'Calls';
-        if (isset(self::${$varName}[$name])) {
-            foreach (self::${$varName}[$name] as $action) {
+        if (isset(self::${$varName}) && count(self::${$varName}) > 0) {
+            foreach (self::${$varName} as $action) {
                 call_user_func($action);
             }
         }

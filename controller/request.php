@@ -16,41 +16,53 @@
 namespace Catapult\Controller;
 
 class Request {
-    private static $path = null;
-    private static $method = null;
-    private static $headers = null;
-    private static $route = null;
+    private $path = null;
+    private $method = null;
+    private $headers = null;
+    private $route = null;
 
-    public static function setPath($path) {
-        self::$path = $path;
+    public function __construct() {
+        if (strpos($_SERVER['REQUEST_URI'], '?') !== false) {
+            $path = substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '?'));
+        } else {
+            $path = $_SERVER['REQUEST_URI'];
+        }
+
+        $base_uri = \Catapult\Core\Config::get('base_uri');
+
+        if (!is_null($base_uri)) {
+            if (substr($path, 0, strlen($base_uri)) === $base_uri) {
+                $path = '/'.substr($path, strlen($base_uri));
+                $path = str_replace('//', '/', $path);
+            }
+        }
+
+        $this->path = $path;
+        $this->method = $_SERVER['REQUEST_METHOD'];
     }
 
-    public static function getPath() {
-        return self::$path;
+    public function getPath() {
+        return $this->path;
     }
 
-    public static function setMethod($method) {
-        self::$method = strtoupper($method);
+    public function getMethod() {
+        return $this->method;
     }
 
-    public static function getMethod() {
-        return self::$method;
-    }
-
-    public static function isMethod($method) {
+    public function isMethod($method) {
         $method = strtoupper($method);
-        return self::$method === $method;
+        return $this->method === $method;
     }
 
-    public static function setRoute(\Catapult\Controller\Route $route) {
-        self::$route = $route;
+    public function setRoute(\Catapult\Controller\Route $route) {
+        $this->route = $route;
     }
 
-    public static function isAjax() {
+    public function isAjax() {
         return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
     }
 
-    public static function isSecure() {
+    public function isSecure() {
         return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
     }
 
@@ -58,35 +70,29 @@ class Request {
      * Test if the current url is the given name
      * For example, test if "/" (current url) is "home"
      */
-    public static function isUrl($name) {
-        if (is_null(self::$route)) return false;
+    public function isUrl($name) {
+        if (is_null($this->route)) return false;
 
-        if (self::$route->getName() === $name) {
+        if ($this->route->getName() === $name) {
             return true;
-        } else if (self::$route->getUrl() === $name) {
+        } else if ($this->route->getUrl() === $name) {
             return true;
         }
 
         return false;
     }
 
-    public static function getRouteName() {
-        if (is_null(self::$route)) return null;
-
-        return self::$route->getName();
-    }
-
-    public static function getHeader($name) {
+    public function getHeader($name) {
         $name = strtolower($name);
-        if (is_null(self::$headers)) {
+        if (is_null($this->headers)) {
             $tmpHeaders = getallheaders();
-            self::$headers = array();
+            $this->headers = array();
             foreach ($tmpHeaders as $key=>$value) {
-                self::$headers[strtolower($key)] = $value;
+                $this->headers[strtolower($key)] = $value;
             }
         }
 
-        if (!isset(self::$headers[$name])) return null;
-        return self::$headers[$name];
+        if (!isset($this->headers[$name])) return null;
+        return $this->headers[$name];
     }
 }

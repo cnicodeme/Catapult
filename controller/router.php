@@ -15,51 +15,66 @@
 
 namespace Catapult\Controller;
 
+use \Catapult\Controller\Route;
+
 class Router {
     private static $methods = array('GET' => true, 'POST' => true, 'PUT' => true, 'DELETE' => true);
 
-    private static $errorNames = array (
-        400 => 'badRequest',
-        403 => 'forbidden',
-        404 => 'notFound'
-    );
-
     private static $routes = array();
+    private static $errors = array();
 
-    public static function add(\Catapult\Controller\Route $route) {
-        if (in_array($route->getUrl(), self::$errorNames)) {
-            return self::addError(array_search($route->getUrl(), self::$errorNames), $route);
-        }
+    private static $base = '';
 
-        if (isset(self::$routes[$route->getName()])) {
-            throw new \Catapult\Exceptions\AlreadyExistsException('Route name "'.$route->getName().'" already exists.');
-        }
-
-        self::$routes[$route->getName()] = $route;
+    public static function get($url, $destination) {
+        return Router::add('GET', $url, $destination);
     }
 
-    public static function addError($code, $route) {
-        if (isset(self::$routes[$code])) {
-            throw new \Catapult\Exceptions\AlreadyExistsException('Error route "'.$code.'" already exists.');
+    public static function post($url, $destination) {
+        return Router::add('POST', $url, $destination);
+    }
+
+    public static function put($url, $destination) {
+        return Router::add('PUT', $url, $destination);
+    }
+
+    public static function delete($url, $destination) {
+        return Router::add('DELETE', $url, $destination);
+    }
+
+    public static function rest($url, $baseDestination) {
+        if (!is_a($baseDestination, '\Catapult\Controller\Controllers\RestController', true)) {
+            throw new \Catapult\Exceptions\CatapultException($destination.' does not extends RestController.');
         }
 
-        self::$routes[$code] = $route;
+        Route::setDefaultMatch(Route::NUMERIC_PATTERN);
+        self::add('GET', $url, $baseDestination.'::lists');
+        self::add('POST', $url, $baseDestination.'::create');
+        self::add('GET', $url.':id', $baseDestination.'::details');
+        self::add('PUT', $url.':id', $baseDestination.'::update');
+        self::add('DELETE', $url.':id', $baseDestination.'::delete');
+        Route::setDefaultMatch(Route::SLUG_PATTERN);
+    }
+
+    public static function with($base, $caller) {
+        self::$base .= $base;
+        $caller();
+        self::$base = '';
+    }
+
+    public static function add($methods, $url, $destination) {
+        if (is_string($destination)) {
+            if (!is_a(substr($destination, 0, strrpos($destination, '::')), '\Catapult\Controller\Controller', true)) {
+                throw new \Catapult\Exceptions\CatapultException($destination.' does not extends Controller.');
+            }
+        }
+
+        $url = self::$base.$url;
+
+        $route = new Route($url, $destination, $methods);
+        self::$routes[] = $route;
     }
 
     public static function getRoute($url, $method = 'GET') {
-        if ((is_int($url) && isset(self::$errorNames[$url])) || (in_array($url, self::$errorNames))) {
-            if (isset(self::$errorNames[$url])) {
-                return array(self::$routes[$url], null);
-            } else {
-                $code = array_search($url, self::$errorNames);
-                if ($code !== false && isset(self::$routes[$code])) {
-                    return array(self::$routes[$code], null);
-                }
-            }
-
-            return null;
-        }
-
         foreach (self::$routes as $route) {
             if (($params = $route->isMatch($url, $method)) !== false) {
                 return array($route, $params);
@@ -67,6 +82,20 @@ class Router {
         }
 
         return null;
+    }
+
+    public static function addError($code, $destination) {
+        if (!is_int($code)) {
+            throw new \Catapult\Exceptions\InvalidParameterException('Parameter "code" expected to be an integer.');
+        }
+
+        self::$errors[$code] = $destination;
+    }
+
+    public static function getError($code) {
+        if (!isset(self::$errors[$code])) return null;
+
+        return self::$errors[$code];
     }
 
     public static function isMethodAllowed($method) {

@@ -16,7 +16,12 @@
 namespace Catapult\Controller;
 
 class Route {
-    private static $defaultMatch = '[a-zA-Z0-9]+';
+    const SLUG_PATTERN     = '[a-zA-Z0-9\-]+';
+    const ALPHANUM_PATTERN = '[a-zA-Z0-9]+';
+    const ALPHA_PATTERN    = '[a-zA-Z]+';
+    const NUMERIC_PATTERN  = '[0-9]+';
+
+    private static $defaultMatch = '[a-zA-Z0-9\-]+';
 
     public static function setDefaultMatch($defaultMatch) {
         self::$defaultMatch = $defaultMatch;
@@ -32,27 +37,11 @@ class Route {
     private $destination = null;
     private $methods = array('GET');
     private $forceHttps = false;
-    private $params = array();
 
-
-    public function __construct($url, $destination, $name = null, $extra = 'GET') {
+    public function __construct($url, $destination, $methods) {
         $this->setUrl($url);
-        $this->setName($name);
         $this->setDestination($destination);
-
-        if (is_string($extra) || is_int(key($extra))) {
-            $this->setMethods($extra);
-        } else {
-            if (isset($extra['methods'])) {
-                $this->setMethods($extra['methods']);
-            }
-            if (isset($extra['forceHttps'])) {
-                $this->setForceHttps($extra['forceHttps']);
-            }
-            if (isset($extra['params'])) {
-                $this->setParams($extra['params']);
-            }
-        }
+        $this->setMethods($methods);
     }
 
     public function setUrl($url) {
@@ -76,24 +65,9 @@ class Route {
         return $this->url;
     }
 
-    public function setName($name) {
-        $this->name = $name;
-    }
-
-    public function getName() {
-        return $this->name;
-    }
-
     public function setDestination($destination) {
         if (!is_callable($destination, true, $callableName)) {
-            throw new \Catapult\Exceptions\NotFoundException('Destination cannot be accessed.');
-        }
-
-        if (is_null($this->name) && is_object($destination)) {
-            $rf = new \ReflectionFunction($destination);
-            if (!$rf->isClosure()) {
-                $this->setName(str_replace('::', '.', substr($callableName, strrpos($callableName, '\\') + 1)));
-            }
+            throw new \Catapult\Exceptions\NotFoundException('Invalid destination name.');
         }
 
         $this->destination = $destination;
@@ -135,18 +109,6 @@ class Route {
 
     public function getForceHttps() {
         return $this->forceHttps;
-    }
-
-    public function setParams($params) {
-        if (!is_array($params)) {
-            throw new \Catapult\Exceptions\InvalidParameterException('Parameter "params" expected to be an array.');
-        }
-
-        $this->params = $params;
-    }
-
-    public function getParams() {
-        return $this->params;
     }
 
     public function isMatch($url, $method) {

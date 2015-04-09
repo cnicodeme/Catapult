@@ -16,5 +16,22 @@
 namespace Catapult\Controller;
 
 abstract class Controller {
+    private static $response = null;
+    private static $request = null;
 
+    public static function getRequest() {
+        if (is_null(self::$request)) {
+            self::$request = new \Catapult\Controller\Request();
+        }
+
+        return self::$request;
+    }
+
+    public static function getResponse() {
+        if (is_null(self::$response)) {
+            self::$response = new \Catapult\Controller\Response();
+        }
+
+        return self::$response;
+    }
 }

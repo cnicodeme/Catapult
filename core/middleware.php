@@ -16,5 +16,11 @@
 namespace Catapult\Core;
 
 abstract class Middleware {
+    public function onProcessRequest() {}   // Listens to : "process_request"
+    public function onProcessView() {}      // Listens to : "process_view"
 
+    public function onProcessException() {} // Listens to : "process_exception"
+    public function onProcessResponse() {}  // Listens to : "process_response"
+
+    public function onTearDown() {}         // Listens to : "process_tear_down"
 }

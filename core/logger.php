@@ -15,6 +15,6 @@
 
 namespace Catapult\Core;
 
-class Log {
+class Logger {
 
 }

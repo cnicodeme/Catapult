@@ -15,7 +15,7 @@
 
 namespace Catapult\Core\Middlewares;
 
-class Locale {
+class Locale extends \Catapult\Core\Middleware {
     private static $lang = null;
 
     public function __construct() {

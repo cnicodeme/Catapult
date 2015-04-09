@@ -15,7 +15,18 @@
 
 namespace Catapult\Helpers;
 
-class Auth {
+class Auth extends \Catapult\Core\Middleware {
+    public function __construct() {
+        \Catapult\Core\EventDispatcher::on('process_request', array($this, 'onProcessRequest'));
+    }
+
+    public function onProcessRequest() {
+        if(isset($_SESSION['email'])) {
+            // Search agains't
+        } else {
+            self::$lang = $this->getLanguageFromBrowser();
+        }
+    }
     // getUsername
         // What to find and where ($_SESSION['email'] ? ['user'] ? )
         // IF returns null, not auth !
