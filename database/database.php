@@ -67,7 +67,23 @@ class Database {
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
-    public function exec($sql, $params = null) {
+    public function __call($name, $arguments) {
+        switch ($name) {
+            case 'execute':
+                $name = 'exec';
+            case 'exec':
+            case 'prepare':
+            case 'load':
+                return call_user_func_array(array($this, '_'.$name), $arguments);
+                break;
+            default:
+                /* Direct accessor to PDO */
+                return call_user_func_array(array($this->pdo, $name), $arguments);
+                break;
+        }
+    }
+
+    private function _exec($sql, $params = null) {
         $stmt = $this->pdo->prepare($sql);
         $result = false;
 
@@ -84,11 +100,11 @@ class Database {
         return $stmt->rowCount();
     }
 
-    public function prepare($sql) {
+    private function _prepare($sql) {
         return $this->pdo->prepare($sql);
     }
 
-    public function load($sql, $params, $model) {
+    private function _load($sql, $params, $model) {
         $stmt = $this->pdo->prepare($sql);
         $result = false;
 
@@ -104,10 +120,5 @@ class Database {
 
         $stmt->setFetchMode(PDO::FETCH_CLASS, $model);
         return $stmt;
-    }
-
-    /* Direct accessor to PDO */
-    public function __call($name, $arguments) {
-        return call_user_func_array(array($this-pdo, $name), $arguments);
     }
 }

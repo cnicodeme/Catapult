@@ -25,11 +25,21 @@ abstract class Model {
     private $_columns = array();
 
     public function __set($column, $value) {
-        $this->_columns[$column] = $value;
+        $setter = 'set'.ucfirst(implode(array_map('ucfirst', explode('_', $column))));
+        if (method_exists($this, $setter)) {
+            return $this->{$setter}($value);
+        } else {
+            $this->_columns[$column] = $value;
+        }
     }
 
     public function __get($column) {
-        return (array_key_exists($column, $this->_columns) ? $this->_columns[$column] : null);
+        $getter = 'get'.ucfirst(implode(array_map('ucfirst', explode('_', $column))));
+        if (method_exists($this, $getter)) {
+            return $this->{$getter}();
+        } else {
+            return (array_key_exists($column, $this->_columns) ? $this->_columns[$column] : null);
+        }
     }
 
     public function __isset($column) {
@@ -49,14 +59,40 @@ abstract class Model {
             throw new \Catapult\Exceptions\NotSupportedException('Missing table name.');
         }
 
-    /*    if ($this->__isset($this->primaryKey)) { // Update
-            $sql = 'UPDATE `'.$this->table.'` SET '..' WHERE `'.$this->primaryKey.'` = :id LIMIT 1;';
+        $cols = array_keys($this->structure);
+        $index = array_search($this->primaryKey, $cols);
+        if ($index !== false) {
+            unset($cols[$index]);
+        }
+
+        $data = array();
+        foreach ($cols as $col) {
+            if (isset($this->_columns[$col])) {
+                $data[$col] = $this->_columns[$col];
+            } else {
+                $data[$col] = null;
+            }
+        }
+
+        if ($this->__isset($this->primaryKey)) { // Update
+            $sql = 'UPDATE `'.$this->table.'` SET ';
+            foreach ($cols as $col) {
+                $sql .= '`'.$col.'` = :'.$col.', ';
+            }
+
+            $sql = substr($sql, 0, -2).' WHERE `'.$this->primaryKey.'` = :'.$this->primaryKey.' LIMIT 1;';
+
+            $data[$this->primaryKey] = $this->_columns[$this->primaryKey];
         } else { // Insert
-            $sql = 'INSERT INTO `'.$this->table.'` (`'.implode($this->_columns, '`, `').'`) VALUES (:'.implode($this->_columns, ', :').');';
-        }*/
+            $sql = 'INSERT INTO `'.$this->table.'` (`'.implode($cols, '`, `').'`) VALUES (:'.implode($cols, ', :').');';
+        }
+
+        return Database::execute($sql, $data);
     }
 
     public function getStructure() {
+        if (!is_array($this->structure)) return array();
+
         return array_keys($this->structure);
     }
 

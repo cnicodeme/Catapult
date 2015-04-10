@@ -15,10 +15,10 @@
 
 namespace Catapult\Data\Constraints;
 
-class Required implements IConstraints {
+class Email implements IConstraints {
     private $message;
 
-    public function __construct($message = 'Please provide an email.') {
+    public function __construct($message = 'Please provide a valid email.') {
         $this->message = $message;
     }
 
@@ -26,7 +26,7 @@ class Required implements IConstraints {
         if (empty($value)) return null;
 
         if(!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            return sprintf($message, $name);
+            return sprintf($this->message, $name);
         }
     }
 }

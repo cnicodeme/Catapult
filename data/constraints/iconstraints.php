@@ -17,5 +17,4 @@ namespace Catapult\Data\Constraints;
 
 interface IConstraints {
     public function validate($name, $value);
-    // Required, Min/Max|Length, Email, Max/Min (number), Pattern
 }

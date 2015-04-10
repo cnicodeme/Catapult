@@ -26,6 +26,10 @@ class Form {
         }
 
         foreach ($model->getStructure() as $column) {
+            // NULL and empty are different meanings !
+            // Empty means the data needs to be set
+            if (is_null($this->data[$column])) continue;
+
             $model->{$column} = $this->data[$column];
         }
     }
@@ -69,8 +73,43 @@ class Form {
         return is_array($this->errors);
     }
 
-    public function __get($name) {
-        return $this->value($name);
+    public function __set($name, $value) {
+        if (!is_array($this->data)) $this->data = array();
+
+        $setter = 'set'.ucfirst(implode(array_map('ucfirst', explode('_', $name))));
+        if (method_exists($this, $setter)) {
+            return $this->{$setter}($value);
+        } else {
+            $this->data[$name] = $value;
+        }
+
+        if (isset($this->structure[$name])) {
+            if (isset($this->structure[$name]['constraints'])) {
+                foreach ($this->structure[$name]['constraints'] as $constraint) {
+                    if (!$constraint instanceof \Catapult\Data\Constraints\IConstraints) {
+                        throw new \Catapult\Exceptions\InvalidParameterException("Constraint must extend IConstraints class.");
+                    }
+
+                    $result = $constraint->validate($name, $this->data[$name]);
+                    if (!is_null($result)) {
+                        $this->reject($name, $result);
+                    }
+                }
+            }
+
+            if (isset($this->structure[$name]['type']) && !is_null($this->data[$name])) {
+                $this->data[$name] = \Catapult\Core\Utils::castTo($this->data[$name], $this->structure[$name]['type']);
+            }
+        }
+    }
+
+    public function __get($column) {
+        $getter = 'get'.ucfirst(implode(array_map('ucfirst', explode('_', $column))));
+        if (method_exists($this, $getter)) {
+            return $this->{$getter}();
+        } else {
+            return $this->value($name);
+        }
     }
 
     public function value($name, $default = null) {
@@ -80,55 +119,25 @@ class Form {
         return $this->data[$name];
     }
 
-    public function bindFromRequest($params = null) {
+    // Be able to choose GET/POST/PUT ?
+    public static function bindFromRequest($params = null) {
         if (is_array($params)) {
-            $this->data = array();
+            $data = array();
             foreach ($params as $name) {
-                $this->data[$name] = \Catapult\Controller\Controller::request()->getData($name);
+                $data[$name] = \Catapult\Controller\Controller::request()->getData($name);
             }
         } else {
-            $this->data = \Catapult\Controller\Controller::request()->getData();
+            $data = \Catapult\Controller\Controller::request()->getData();
         }
 
-        if (is_array($this->structure)) {
-            foreach($this->structure as $name=>$rules) {
-                if (isset($rules['constraints'])) {
-                    foreach ($rules['constraints'] as $constraint) {
-                        if (!$constraints instanceof \Catapult\Data\Constraints\IConstraint) {
-                            throw new \Catapult\Exceptions\InvalidParameterException("Constraint must extend IConstraint class.");
-                        }
-                        $result = $constraint->validate($name, $this->data[$name]);
-                        if (!is_null($result)) {
-                            $this->reject($name, $result);
-                        }
-                    }
-                }
-
-                if (isset($rules['type']) && !is_null($this->data[$name])) {
-                    $this->data[$name] = $this->setType($this->data[$name], $rule['type']);
-                }
-            }
+        $class = get_called_class();
+        $form = new $class();
+        foreach($data as $key=>$value) {
+            $form->{$key} = $value;
         }
 
-        $this->validate();
-    }
+        $form->validate();
 
-    private function setType($value, $type) {
-        if (is_null($value)) return null;
-
-        switch($type) {
-            case 'bool':
-                return filter_var($value, FILTER_VALIDATE_BOOLEAN);
-                break;
-            case 'int':
-                return intval($value);
-                break;
-            case 'str':
-                return strval($value);
-                break;
-            default:
-                return call_user_func_array($type, $value)
-                break;
-        }
+        return $form;
     }
 }

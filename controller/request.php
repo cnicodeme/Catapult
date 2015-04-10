@@ -81,11 +81,23 @@ class Request {
         return $this->headers[$name];
     }
 
+    public function getQueryString($name = null) {
+        if (is_null($name)) {
+            return $_GET;
+        }
+
+        if (!isset($_GET[$name])) {
+            return null;
+        }
+
+        return $_GET[$name];
+    }
+
     // TODO: Test JSON body, File upload as BODY
     public function getData($name = null) {
         if (is_null($this->data)) {
             $this->data = array();
-            switch(getMethod()) {
+            switch(self::getMethod()) {
                 case 'GET':
                     $this->data = $_GET;
                     break;
