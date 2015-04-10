@@ -1,7 +1,7 @@
 <?php
 /**
  * @name Required
- * Ensure that the given value is higher than .
+ * Ensure that the given value is valid agains't a regex pattern .
  *
  * @package Catapult.Data.Constraints
  *

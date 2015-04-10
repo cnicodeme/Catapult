@@ -25,6 +25,10 @@ abstract class Model {
     private $_columns = array();
 
     public function __set($column, $value) {
+        if (isset($this->structure[$column]) && isset($this->structure[$column]['type'])) {
+            $value = \Catapult\Core\Utils::castTo($value, $this->structure[$column]['type']);
+        }
+
         $setter = 'set'.ucfirst(implode(array_map('ucfirst', explode('_', $column))));
         if (method_exists($this, $setter)) {
             return $this->{$setter}($value);
@@ -68,7 +72,11 @@ abstract class Model {
         $data = array();
         foreach ($cols as $col) {
             if (isset($this->_columns[$col])) {
-                $data[$col] = $this->_columns[$col];
+                if (isset($this->structure[$col]['type'])) {
+                    $data[$col] = \Catapult\Core\Utils::castToDb($this->_columns[$col], $this->structure[$col]['type']);
+                } else {
+                    $data[$col] = $this->_columns[$col];
+                }
             } else {
                 $data[$col] = null;
             }
@@ -86,7 +94,7 @@ abstract class Model {
         } else { // Insert
             $sql = 'INSERT INTO `'.$this->table.'` (`'.implode($cols, '`, `').'`) VALUES (:'.implode($cols, ', :').');';
         }
-
+        
         return Database::execute($sql, $data);
     }
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * @name Required
- * Ensure that the given value is not empty.
+ * Ensure that the given value is a valid email
  *
  * @package Catapult.Data.Constraints
  *

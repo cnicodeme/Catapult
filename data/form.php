@@ -29,6 +29,7 @@ class Form {
             // NULL and empty are different meanings !
             // Empty means the data needs to be set
             if (is_null($this->data[$column])) continue;
+            if (!isset($this->structure[$column])) continue;
 
             $model->{$column} = $this->data[$column];
         }
